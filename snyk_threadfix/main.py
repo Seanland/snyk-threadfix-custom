@@ -180,34 +180,34 @@ def create_finding_data(
     org_id, snyk_project, snyk_project_metadata, snyk_vulnerability
 ):
     native_id = generate_native_id(
-        org_id, snyk_project.id, snyk_vulnerability.id, snyk_vulnerability.fromPackages
+        org_id, snyk_project.id, snyk_vulnerability.id, "" # Removing due to lack of variable in new data set. 
     )
 
+    # Modified all the findings below, using the IssueAggregate object
     finding = {
         "nativeId": native_id,
-        "severity": snyk_vulnerability.severity,
-        "nativeSeverity": snyk_vulnerability.severity,
-        "cvssScore": snyk_vulnerability.cvssScore,
-        "summary": snyk_vulnerability.title,
-        "description": "You can find the description here: %s" % snyk_vulnerability.url,
+        "severity": snyk_vulnerability.issueData.severity,
+        "nativeSeverity": snyk_vulnerability.issueData.severity,
+        "cvssScore": snyk_vulnerability.issueData.cvssScore,
+        "summary": snyk_vulnerability.issueData.title,
+        "description": snyk_vulnerability.issueData.description, # Added for the full issue data. 
         "scannerDetail": "You can find the description here: %s"
-        % snyk_vulnerability.url,
-        "scannerRecommendation": snyk_vulnerability.url,  # TBD
+        % snyk_vulnerability.issueData.url,
+        "scannerRecommendation": snyk_vulnerability.issueData.url,  # TBD
         "dependencyDetails": {
-            "library": snyk_vulnerability.package,
-            "description": "You can find the description here: %s"
-            % snyk_vulnerability.url,
-            "reference": snyk_vulnerability.id,
+            "library": snyk_vulnerability.pkgName,
+            "description": snyk_vulnerability.issueData.description,
+            "reference": snyk_vulnerability.id, # Added if statement to change if CVE available
             "referenceLink": "%s#issue-%s"
             % (snyk_project.browseUrl, snyk_vulnerability.id),
-            "version": snyk_vulnerability.version,
+            "version": snyk_vulnerability.pkgVersions,
             "issueType": "VULNERABILITY",
         },
         "metadata": {
-            "language": snyk_vulnerability.language,  # TODO: figure out what this means for CLI/container project types
-            "packageManager": snyk_vulnerability.packageManager,  # TODO: figure out what this means for CLI/container project types
-            "CVSSv3": snyk_vulnerability.CVSSv3,
-            "cvssScore": snyk_vulnerability.cvssScore,
+            "language": snyk_vulnerability.issueData.language,  # TODO: figure out what this means for CLI/container project types
+            "packageManager": snyk_project.type,  # TODO: figure out what this means for CLI/container project types
+            "CVSSv3": snyk_vulnerability.issueData.CVSSv3,
+            "cvssScore": snyk_vulnerability.issueData.cvssScore,
             "snyk_source": snyk_project.origin,
             "snyk_project_id": snyk_project.id,
             "snyk_project_name": snyk_project.name,
@@ -216,6 +216,10 @@ def create_finding_data(
         },
         "mappings": [],
     }
+
+    # if "CVE" in snyk_vulnerability.issueData.identifiers:
+    if snyk_vulnerability.issueData.identifiers["CVE"]:
+        finding["dependencyDetails"]["reference"] = snyk_vulnerability.issueData.identifiers["CVE"]
 
     if (
         "repo" in snyk_project_metadata
@@ -229,8 +233,9 @@ def create_finding_data(
         finding["metadata"]["snyk_branch"] = snyk_project_metadata.get(
             "branch", "(default branch)"
         )
+    # New mapping for the issueData. 
+    mappings = snyk_identifiers_to_threadfix_mappings(snyk_vulnerability.issueData.identifiers)
 
-    mappings = snyk_identifiers_to_threadfix_mappings(snyk_vulnerability.identifiers)
     finding["mappings"] = mappings
 
     return finding
@@ -242,7 +247,11 @@ def create_threadfix_findings_data(org_id, project_id):
 
     project_meta_data = parse_snyk_project_name(p.name)
 
-    for i in p.vulnerabilities:
+    # Adding the filter to include descriptions
+    issues = p.issueset_aggregated.filter(includeDescription=True)
+
+    # Filtering through the issues instead of the vulnerabilities
+    for i in issues.issues:
         finding_data = create_finding_data(org_id, p, project_meta_data, i)
         findings.append(finding_data)
 

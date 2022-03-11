@@ -1,4 +1,16 @@
-# snyk-threadfix
+# snyk-threadfix-custom
+
+## Beware:  This is a custom branch used to proof of concept specific changes around description and CVE references.
+
+pip install git+https://github.com/Seanland/snyk-threadfix-custom#egg=snyk-threadfix-custom
+
+## *Please do proper testing and success criteria before implementing into production* 
+
+### The following changes have been made to this repo:
+- changed the data set being used from "Vulnerabilities" to "AggregatedIssues" 
+- removed "fromPackages" parameter when creating the hash id; unsure of the consequences here. 
+- added a condition to change the reference id if there is an assigned CVE for the vulnerability. 
+- Changed the description information from the database link to the actual details themselves. 
 
 |           | develop |
 |:----------|:--------|
