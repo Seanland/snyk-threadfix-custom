@@ -2,7 +2,7 @@
 
 ## Beware:  This is a custom branch used to proof of concept specific changes around description and CVE references.
 
-pip install git+https://github.com/Seanland/snyk-threadfix-custom#egg=snyk-threadfix-custom
+pip install git+https://github.com/Seanland/snyk-threadfix-custom#egg=snyk-threadfix
 
 ## *Please do proper testing and success criteria before implementing into production* 
 
